@@ -114,13 +114,23 @@ public class EmptyLauncher: MonoBehaviour, INetworkRunnerCallbacks {
         // Requires the Physics add-on: https://doc.photonengine.com/fusion/current/addons/physics/download
 
         // Create the NetworkSceneInfo from the current scene
-        // Get the current scene's path
         var currentScene = SceneManager.GetActiveScene();
-        // Use the path to get the build index - this works consistently in MPPM
-        int buildIndexFromScene = currentScene.buildIndex;
         int buildIndexFromPath = SceneUtility.GetBuildIndexByScenePath(currentScene.path);
 
-        Debug.Log($"[StartGame] Scene: {currentScene.name}, Path: {currentScene.path}, BuildIndexFromScene: {buildIndexFromScene}, buildIndexFromPath: {buildIndexFromPath}");
+        Debug.Log($"=== SCENE DEBUG INFO ===");
+        Debug.Log($"Active Scene Name: {currentScene.name}");
+        Debug.Log($"Active Scene Path: {currentScene.path}");
+        Debug.Log($"Active Scene IsValid: {currentScene.IsValid()}");
+        Debug.Log($"Active Scene buildIndex (direct): {currentScene.buildIndex}");
+
+        // Check all scenes in Build Settings
+        Debug.Log($"Total scenes in Build Settings: {SceneManager.sceneCountInBuildSettings}");
+        for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++) {
+            string scenePath = SceneUtility.GetScenePathByBuildIndex(i);
+            Debug.Log($"  Build Index {i}: {scenePath}");
+        }
+
+        Debug.Log($"[StartGame] Scene: {currentScene.name}, Path: {currentScene.path}, BuildIndexFromScene: {currentScene.buildIndex}, buildIndexFromPath: {buildIndexFromPath}");
         if (buildIndexFromPath == -1) {
             Debug.LogError($"CRITICAL ERROR: Scene '{currentScene.path}' is NOT in Build Settings! " +
                            $"Go to File > Build Settings and add this scene.");

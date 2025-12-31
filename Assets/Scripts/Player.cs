@@ -9,9 +9,10 @@ public class Player: NetworkBehaviour
     [SerializeField] GameObject ballPrefab;
 
     private Camera firstPersonCamera;
-    public override void Spawned() {
+    public override void Spawned() {   // Instead of Awake, Start
+        Debug.Log("Player object is spawned");
         _cc = GetComponent<CharacterController>();
-        if (HasStateAuthority) {
+        if (this.HasStateAuthority) {
             firstPersonCamera = Camera.main;
             var firstPersonCameraComponent = firstPersonCamera.GetComponent<FirstPersonCamera>();
             if (firstPersonCameraComponent && firstPersonCameraComponent.isActiveAndEnabled)
@@ -20,7 +21,7 @@ public class Player: NetworkBehaviour
     }
 
     private Vector3 moveDirection;
-    public override void FixedUpdateNetwork() {
+    public override void FixedUpdateNetwork() {    // Instead of  Update and FixedUpdate
         if (GetInput(out NetworkInputData inputData)) {
             if (inputData.moveActionValue.magnitude > 0) {
                 inputData.moveActionValue.Normalize();   //  Ensure that the vector magnitude is 1, to prevent cheating.

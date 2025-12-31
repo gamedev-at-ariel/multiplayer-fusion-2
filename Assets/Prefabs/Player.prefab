@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4787378660217015756}
   - component: {fileID: 1875648075989424582}
+  - component: {fileID: 1619760748321797850}
   - component: {fileID: 1094818641468150983}
   - component: {fileID: 4288575238521794706}
-  - component: {fileID: 1619760748321797850}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -53,9 +53,26 @@ MonoBehaviour:
   Flags: 262145
   NestedObjects: []
   NetworkedBehaviours:
-  - {fileID: 4288575238521794706}
   - {fileID: 1619760748321797850}
+  - {fileID: 4288575238521794706}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &1619760748321797850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670411976358782716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0.15
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
 --- !u!143 &1094818641468150983
 CharacterController:
   m_ObjectHideFlags: 0
@@ -95,23 +112,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 3
   ballPrefab: {fileID: 7684413099106084849, guid: d5dc616368bd6a04084f1df1630149a9, type: 3}
---- !u!114 &1619760748321797850
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4670411976358782716}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _stateAuthorityChangeErrorCorrectionDelta: 0.15
-  SyncScale: 0
-  SyncParent: 0
-  _autoAOIOverride: 1
-  DisableSharedModeInterpolation: 0
 --- !u!1 &6734283440618874081
 GameObject:
   m_ObjectHideFlags: 0
@@ -173,6 +173,8 @@ MeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -194,6 +196,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
