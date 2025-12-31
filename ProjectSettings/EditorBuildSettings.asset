@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 0
-    path: Assets/Scenes/0-empty-after-fusion-setup.unity
+    path: Assets/Scenes/old/0-empty-after-fusion-setup.unity
     guid: 85bd39a59708d5142af0c5966db91e81
   - enabled: 1
     path: Assets/Scenes/1-empty-launcher.unity
@@ -14,6 +14,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/2a-player.unity
     guid: 7a4e6df28e1f21a47b99f7c2936a18e6
+  - enabled: 1
+    path: Assets/Scenes/2c-camera.unity
+    guid: bee63ed24ef3f5a4f89b2f4add45fd55
   - enabled: 1
     path: Assets/Scenes/3a-ball.unity
     guid: ed6dc5c69b19fb94780c8f319ef07170

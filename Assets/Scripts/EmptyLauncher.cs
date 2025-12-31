@@ -103,6 +103,13 @@ public class EmptyLauncher: MonoBehaviour, INetworkRunnerCallbacks {
          *   * Single         - used to test the game as a single player (no network connection needed)
          */
         Debug.Log($"Starting game at mode {mode}, session {sessionName}");
+
+        if (SceneManager.sceneCountInBuildSettings==0) {
+            Debug.LogError($"CRITICAL ERROR: No scenes in build settings!" +
+                           $"Possible solution: In MPPM, deactivate the player and then re-activate it. Or restart the editor.");
+            return; // Stop execution
+        }
+
         // Create the Fusion runner and let it know that we will be providing user input
         _runner = gameObject.AddComponent<NetworkRunner>();
         _runner.ProvideInput = true;
@@ -122,13 +129,7 @@ public class EmptyLauncher: MonoBehaviour, INetworkRunnerCallbacks {
         Debug.Log($"Active Scene Path: {currentScene.path}");
         Debug.Log($"Active Scene IsValid: {currentScene.IsValid()}");
         Debug.Log($"Active Scene buildIndex (direct): {currentScene.buildIndex}");
-
-        // Check all scenes in Build Settings
         Debug.Log($"Total scenes in Build Settings: {SceneManager.sceneCountInBuildSettings}");
-        for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++) {
-            string scenePath = SceneUtility.GetScenePathByBuildIndex(i);
-            Debug.Log($"  Build Index {i}: {scenePath}");
-        }
 
         Debug.Log($"[StartGame] Scene: {currentScene.name}, Path: {currentScene.path}, BuildIndexFromScene: {currentScene.buildIndex}, buildIndexFromPath: {buildIndexFromPath}");
         if (buildIndexFromPath == -1) {
