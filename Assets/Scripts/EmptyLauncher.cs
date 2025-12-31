@@ -74,11 +74,11 @@ public class EmptyLauncher: MonoBehaviour, INetworkRunnerCallbacks {
         Debug.Log($"OnSceneLoadStart");
     }
     public virtual void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) {
-        Debug.Log($"OnObjectExitAOI {obj} {player}");
+        //Debug.Log($"OnObjectExitAOI {obj} {player}");
     }
 
     public virtual void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) {
-        Debug.Log($"OnObjectExitAOI {obj} {player}");
+        //Debug.Log($"OnObjectEnterAOI {obj} {player}");
     }
     public virtual void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) {
         Debug.Log($"OnReliableDataReceived {player} {key} {data}");

@@ -24,9 +24,11 @@ public class Ball: NetworkBehaviour {
     }
 
     private void OnTriggerEnter(Collider other) {
-        //Debug.Log("OnTriggerEnter " + other.gameObject.name + " " + other.gameObject.tag);
+        if (!HasStateAuthority) return;  // Without this line, the trigger will happen on each client, and thus remove multiple health points
+
         Health health = other.GetComponent<Health>();
         if (health != null) {
+            Debug.Log("OnTriggerEnter: hit an object with Health: " + other.gameObject.name + " " + other.gameObject.tag);
             health.DealDamageRpc(damagePerHit);
         }
     }

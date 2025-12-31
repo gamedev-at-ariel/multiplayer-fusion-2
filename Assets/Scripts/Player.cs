@@ -20,14 +20,15 @@ public class Player: NetworkBehaviour
         }
     }
 
-    private Vector3 moveDirection;
+    private Vector3 moveDirection, velocity;
     public override void FixedUpdateNetwork() {    // Instead of  Update and FixedUpdate
         if (GetInput(out NetworkInputData inputData)) {
             if (inputData.moveActionValue.magnitude > 0) {
-                inputData.moveActionValue.Normalize();   //  Ensure that the vector magnitude is 1, to prevent cheating.
                 moveDirection = new Vector3(inputData.moveActionValue.x, 0, inputData.moveActionValue.y);
-                Vector3 DeltaX = speed * moveDirection * Runner.DeltaTime;
-                //Debug.Log($"{speed} * {moveDirection} * {Runner.DeltaTime} = {DeltaX}");
+                moveDirection.Normalize();
+                velocity = transform.TransformDirection(moveDirection * speed); // Move in the direction you look:
+                Vector3 DeltaX = velocity * Runner.DeltaTime;
+                //Debug.Log($"moveDirection={moveDirection}, velocity={velocity}, DeltaX = {DeltaX}");
                 _cc.Move(DeltaX);
             }
 
