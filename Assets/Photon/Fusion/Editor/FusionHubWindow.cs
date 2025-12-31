@@ -203,7 +203,7 @@ namespace Fusion.Editor {
     private void DrawFooter() {
       GUILayout.BeginHorizontal(FusionHubSkin.window);
       {
-        GUILayout.Label("\u00A9 2022, Exit Games GmbH. All rights reserved.");
+        GUILayout.Label("\u00A9 2025, Exit Games GmbH. All rights reserved.");
       }
       GUILayout.EndHorizontal();
     }
@@ -249,7 +249,13 @@ namespace Fusion.Editor {
       private static void EnsureAssetExists() {
         if (!PhotonAppSettings.TryGetGlobal(out var global) || global.AppSettings.AppIdFusion == null) {
           FusionEditorLog.Trace($"Opening HUB due to missing settings.");
-          EditorApplication.delayCall += () => { Open(); };
+          EditorApplication.delayCall += () => {
+            // Check if it is running in batch mode & ignore
+            if (UnityEditorInternal.InternalEditorUtility.inBatchMode) { return; }
+
+            // otherwise, open the window
+            Open();
+          };
         }
       }
     }

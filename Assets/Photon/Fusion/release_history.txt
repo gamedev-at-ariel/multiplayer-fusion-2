@@ -1,3 +1,167 @@
+# 2.0.9
+
+## Stable
+
+### Build 1566 (Dec 08, 2025)
+
+**What's New**
+
+- Added `Networkrunner.CommittedPlayers`, which lists only players both fully in the room and the Fusion session
+- Equality Operators and `GetHashCode()` to `ReliableKey`
+
+**Bug Fixes**
+
+- Fixed: Compatibility with Unity 6.3
+- Fixed: `NetworkTransform` area of interest override was being overwritten internally
+- Fixed: Invalid warning message suggesting to use `[Networked]` for float/vector properties on structs
+- Fixed: RPCs targeting state authority were not being received when outside the area of interest
+- Fixed: Lag compensation internal AABB constructor fix assignment order
+
+# 2.0.8
+
+## Stable
+
+### Build 1402 (Oct 17, 2025)
+
+**What's New**
+
+- Added `Networkrunner.CommittedPlayers`, which lists only players both fully in the room and the Fusion session
+
+**Changes**
+
+- EnableExperimentalPacketLossRecovery renamed to EnableAdaptivePacketFragmentation. When enabled, lost packets will cause next Fusion packets to be sent without fragmentation, thus reducing the chance of an ongoing packet loss due to fragments being reordered and rejected
+
+**Bug Fixes**
+
+- Fixed: Correct the online manual link for `NetworkRunner`
+- Fixed: Warnings related to `TreeView` and `TreeViewState` being obsolete
+- Fixed: `NetBitBuffer` - false-positive assertion when reading a negative value with `ReadInt32VarLength` in a Debug build
+- Fixed: `NetworkTransform` SyncScale in shared mode
+
+# 2.0.7
+
+## Stable
+
+### Build 1327 (Sep 26, 2025)
+
+**What's New**
+
+- `NetworkRunner.FailedToResolveNetworkObject` - an event that can be used to detect cases where `[Networked]` `NetworkObject` properties return null not due to underlying `NetworkId` being zero, but because the object was not found (due to AoI, being destroyed locally etc.)
+- Fusion Version Scripting Define Symbols
+- Support to Nintendo Switch 2
+- `SimulationConfig.EnableExperimentalPacketLossRecovery` - if enabled, lost packets will cause next Fusion packets to be sent without fragmentation, thus reducing the chance of an ongoing packet loss due to fragments being reordered and rejected
+- Memory profiler counters
+
+**Changes**
+
+- Photon Realtime SDK to 4.1.8.16
+- `Failed to unwrap` warning no longer logged for `NetworkBehaviour` references that fail to resolve, regardless of the reason
+- `Failed to find behaviour` is now logged for an invalid `NetworkBehaviour` on a valid `NetworkObject`
+- Clamp `PlayerCount` to a valid range (1-2048) in Shared Mode
+- Clamp Heap `PageCount` to a valid range (16-4096) in Shared Mode
+- All Fusion profiler counters are now marked with "F" prefix
+- Update NanoSockets for Android to support 16 KB page sizes
+- `FusionProfiler` no longer needs `FUSION_PROFILER_INTEGRATION` define and core profiler package
+- `NetworkObjectBaker` uses `Fusion.Log` instead of `UnityEngine.Debug`
+
+**Bug Fixes**
+
+- Fixed: NullRef in Editor when running WebGL
+- Fixed: NMA error when animator has 8 bool parameters Or a multiple of 8
+- Fixed: Editor error when interacting with invalid network objects (Header can be uninitialized and causes null ref, checking Ptr to avoid it)
+- Fixed: Global INetworkRunner AOI Callbacks are executed on clients in Host/Server mode and not just on the Server
+- Fixed: NetworkLinkedList.IndexOf returns -1 if the value is not found
+- Fixed: "Buffer should be null" assertions after a failed send
+- Fixed: VisionOS NanoSockets Static Library
+- Fixed: Reset re-join attempts when peer is able to join Session
+- Fixed: Prefabs not being replicated until a resimulation tick occur
+- Fixed: First item in SimulationConfig (ReplicationFeatures) does not draw it's help correctly in Unity inspector
+- Fixed: `NetBitBuffer` - false-positive assertion when writing a negative value with `WriteInt32VarLength` in a Debug build
+- Fixed: Assert "byteCount >= NetNotifyHeader.SIZE_IN_BYTES"
+- Fixed: Fusion statistics packets now counts fragmented packets
+- Fixed: Occasional `NullReferenceException` when shutting down Shared client with scheduling enabled
+- Fixed: Crash in some Unity versions when opening the project in batch mode due to forced recompilation
+
+# 2.0.6
+
+## Stable
+
+### Build 1034 (May 08, 2025)
+
+**Breaking Changes**
+
+- NetworkObjects that remains after shared mode authority leaves now has state authority set to PlayerRef.None
+
+**What's New**
+
+- NetworkRunner.LocalAddress to access the address Fusion bound to for direct connections
+
+**Changes**
+
+- Photon Realtime SDK to 4.1.8.15
+- DestroyWhenStateAuthorityLeaves prefab flag is now independent from the AllowStateAuthorityOverride
+- Shared mode master client can now despawn network objects with PlayerRef.None as state authority
+- Clicking animator bake failure error messages now shows the relevant gameObject in the hierarchy
+- Photon Realtime SDK to 4.1.8.14
+- Force ShutdownTime to 1 second on Fusion Plugin
+- Leave Session before disconnect from Photon Cloud
+- Keep Session running only if Host/Server disconnected by Timeout
+- Editor trace logs are more granular, with following defines controlling specific streams: `FUSION_EDITOR_TRACE_IMPORT`, `FUSION_EDITOR_TRACE_INSPECTOR`, `FUSION_EDITOR_TRACE_TEST`, FUSION_EDITOR_TRACE_MPPM`
+- Spawned calls wrapped in try-catch so that an exception does not prevent other callbacks from executing
+- `Simulation.IsStateAuthority` handles `PlayerRef.None` correctly (i.e. when it represents the host)
+- `Simulation.IsInputAuthority` handles `PlayerRef.None` and `PlayerRef.MasterClient` correctly
+
+**Bug Fixes**
+
+- Fixed: In Shared Mode, if a state authority makes a state change which races against the server removing state authority from it, then flag the original state needing to be re-sent
+- Fixed: Runtime spawned objects in scene are spawned/despawned multiple times in scene unload with a large amount of objects
+- Fixed: Check StartGameArgs.Config for PlayerCount
+- Fixed: Shutdown normally if Disconnected By PluginLogic
+- Fixed: Client not rolling objects back to latest snapshot state in certain conditions
+- Fixed: Prefab table not updating if running in batchmode
+- Fixed: Stop repeated Unity warning logging if simulating multi peer physics scenes by not simulating the default scene
+- Fixed: Client sometimes not updating `LatestServerTick` after receiving a new snapshot
+- Fixed: Unable to update Session properties after Host Migration
+
+# 2.0.5
+
+## Stable
+
+### Build 920 (Feb 12, 2025)
+
+**What's New**
+
+- Support for breakpoints: ClientServer Mode only. Working on both Multi-Peer and Unity MPPM
+- `SimulationMessage.GetRawData`
+- `Fusion.Unsafe` - a replacement for `System.Runtime.CompilerServices.Unsafe`
+
+**Changes**
+
+- `NetworkRunner` tries to quickly rejoin the session automatically (Client-Server mode only)
+- Skip opening Fusion Hub in batchmode
+- `NetworkTRSP` state authority change error correction delta default value set to 0
+- `SimulationMessage.GetData` is now obsolete
+- `NetworkObjectHeader` up to `Flags` fields is now read only
+- Improve support for Break-points
+
+**Bug Fixes**
+
+- Fixed: Stability and robustness fixes when under heavy network load
+- Fixed: Unable to spawn during StateAuthorityChanged callback on MasterClientObjects
+- Fixed: Incorrect reset/jump of time on proxy objects after a frame of exceptionally long duration
+- Fixed: Lag Compensation box overlap problem with hitbox Y rotation
+- Fixed: A sequence of lost packets resulting in a partial object data being sent
+- Fixed: Lag Compensation box overlap having problems with hitboxes offset
+- Fixed: `IndexOutOfRange` exception when reading negative offsets in skip data
+- Fixed: `ReadObjectDataIntoPtr` throwing null ref exception in case of repeated word check errors
+- Fixed: No flags for attached objects
+- Fixed: Lag compensation layer masks being ignored with subtick accuracy
+- Fixed: Check word count before Allocating an object (always) and compare against page size
+- Fixed: Apply NetworkTransform.DisableSharedModeInterpolation in Single Mode
+- Fixed: Intro Sample Menu Dependency
+- Fixed: Odin drawers not finding underlying fields
+- Fixed: Realtime ConnectionHandler stacking
+
 # 2.0.4
 
 ## Stable

@@ -30,6 +30,16 @@ namespace Fusion {
     public bool LogSceneLoadErrors = true;
 
     /// <summary>
+    /// If enabled the scenemanager despawns all runtime spawned prefab instances (not scene objects) before unloading a scene.
+    /// If the peer does not have StateAuthority over the object it is destroyed instead of despawned.
+    /// If disabled the destroy will be indirectly done via the scene unload from Unity however it will be async and might be delayed,
+    /// this can lead to the scene change being synchronized in an earlier tick than the destroys.
+    /// </summary>
+    [InlineHelp]
+    [ToggleLeft]
+    public bool DestroySpawnedPrefabsOnSceneUnload = true;
+    
+    /// <summary>
     /// All the scenes loaded by all the managers. Used when <see cref="IsSceneTakeOverEnabled"/> is enabled.
     /// </summary>
     private static Dictionary<Scene, NetworkSceneManagerDefault> _allOwnedScenes = new Dictionary<Scene, NetworkSceneManagerDefault>(new FusionUnitySceneManagerUtils.SceneEqualityComparer());
@@ -344,6 +354,21 @@ namespace Fusion {
             }
           }
         }
+        else
+        {
+          if (DestroySpawnedPrefabsOnSceneUnload && loadSceneMode == LoadSceneMode.Single)
+          {
+            for (int i = 0; i < SceneManager.sceneCount; i++) {
+              // find the scene to unload
+              var sceneToBeUnloaded = SceneManager.GetSceneAt(i); // will be unloaded by Unity on scene load
+              var sceneRefToBeUnloaded = GetSceneRef(sceneToBeUnloaded.path);
+
+              if (sceneRefToBeUnloaded != SceneRef.None) {
+                DestroyAllRuntimeSpawnedObjectsInScene(sceneToBeUnloaded, sceneRefToBeUnloaded);
+              }
+            }
+          }
+        }
 
         if (IsSceneTakeOverEnabled) {
           // check if a loaded scene can be taken over
@@ -516,6 +541,11 @@ namespace Fusion {
             throw new ArgumentOutOfRangeException($"Did not find a scene to unload: {sceneRef}", nameof(sceneRef));
           }
 
+          if (DestroySpawnedPrefabsOnSceneUnload) {
+            DestroyAllRuntimeSpawnedObjectsInScene(sceneToUnload, sceneRef);
+          }
+
+
           Log.TraceSceneManager(Runner, $"Started unloading {sceneToUnload.Dump()} for {sceneRef}");
 
           if (!sceneToUnload.CanBeUnloaded()) {
@@ -597,6 +627,22 @@ namespace Fusion {
       Log.TraceSceneManager(Runner, $"Loading scene progress {sceneRef} ({progress:P2})");
     }
 
+    private void DestroyAllRuntimeSpawnedObjectsInScene(Scene scene, SceneRef sceneRef) {
+      Log.TraceSceneManager(Runner, $"destroying runtime spawned NetworkObjects in scene {scene.Dump()} for {sceneRef}");
+      foreach (var networkObject in Runner.GetAllNetworkObjects()) {
+        // This exists to ensure all object meta is destroyed when unloading the scene to prevent objects from getting despawned and spawned again repeadetly on scene unload.
+        // Scene objects are ignored as they can't be spawned again when the scene is unloaded.
+        if (networkObject.gameObject.scene == scene && networkObject.NetworkTypeId.IsSceneObject == false) {
+          if (networkObject.HasStateAuthority) {
+            // despawn to ensure the object is immediately added to destroy queue. (Unity destroy callback is delayed until end of Update()
+            Runner.Despawn(networkObject); 
+          } else {
+            Destroy(networkObject.gameObject);
+          }
+        }
+      }
+    }
+    
     private Scene FindSceneToTakeOver(SceneRef sceneRef) {
       for (int i = 0; i < SceneManager.sceneCount; ++i) {
         var candidate = SceneManager.GetSceneAt(i);

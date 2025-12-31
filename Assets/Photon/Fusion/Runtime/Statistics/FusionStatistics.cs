@@ -8,6 +8,7 @@ using UnityEngine.Profiling;
   using UnityEngine.Serialization;
   
   [RequireComponent(typeof(NetworkRunner))]
+  [DisallowMultipleComponent]
   [AddComponentMenu("Fusion/Statistics/Fusion Statistics")]
   public class FusionStatistics : SimulationBehaviour, ISpawned {
     internal List<FusionStatsGraphBase> ActiveGraphs => _statsGraph;

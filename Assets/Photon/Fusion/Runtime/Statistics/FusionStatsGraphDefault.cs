@@ -50,7 +50,6 @@ namespace Fusion.Statistics {
       { RenderSimStats.OutBandwidth, "(Per second)" },
       { RenderSimStats.InputInBandwidth, "(Per second)" },
       { RenderSimStats.InputOutBandwidth, "(Per second)" },
-      { RenderSimStats.StateReceiveDelta, "(Per second)" },
       { RenderSimStats.WordsWrittenSize, "(Per second)" },
       { RenderSimStats.WordsWrittenCount, "(Per second)" },
       { RenderSimStats.WordsReadCount, "(Per second)" },

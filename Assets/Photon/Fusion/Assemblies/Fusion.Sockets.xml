@@ -287,6 +287,12 @@
             <param name="buffer">A pointer to the buffer containing the bytes to write.</param>
             <param name="length">The number of bytes to write.</param>
         </member>
+        <member name="M:Fusion.Sockets.INetBitWriteStream.WriteBytesAligned(System.Span{System.Byte})">
+            <summary>
+            Writes a sequence of bytes to the stream, aligned to byte boundaries.
+            </summary>
+            <param name="buffer">A pointer to the buffer containing the bytes to write.</param>
+        </member>
         <member name="T:Fusion.Sockets.NetAddress">
             <summary>
             Represents a Network Address, which includes a IP and Port
@@ -749,12 +755,24 @@
             <param name="buffer">A pointer to the block of bytes to write.</param>
             <param name="length">The number of bytes to write.</param>
         </member>
+        <member name="M:Fusion.Sockets.NetBitBuffer.WriteBytesAligned(System.Span{System.Byte})">
+            <summary>
+            Writes a block of bytes to the buffer, ensuring byte alignment.
+            </summary>
+            <param name="buffer">A pointer to the block of bytes to write.</param>
+        </member>
         <member name="M:Fusion.Sockets.NetBitBuffer.ReadBytesAligned(System.Byte[],System.Int32)">
             <summary>
             Reads an array of bytes from the buffer, ensuring byte alignment.
             </summary>
             <param name="buffer">The array to store the read bytes.</param>
             <param name="length">The number of bytes to read.</param>
+        </member>
+        <member name="M:Fusion.Sockets.NetBitBuffer.ReadBytesAligned(System.Span{System.Byte})">
+            <summary>
+            Reads a block of bytes from the buffer, ensuring byte alignment.
+            </summary>
+            <param name="buffer">A pointer to the block of bytes to store the read data.</param>
         </member>
         <member name="M:Fusion.Sockets.NetBitBuffer.ReadBytesAligned(System.Void*,System.Int32)">
             <summary>
@@ -1044,6 +1062,12 @@
             </summary>
             <param name="buffer">A pointer to the buffer containing the bytes to write.</param>
             <param name="length">The number of bytes to write.</param>
+        </member>
+        <member name="M:Fusion.Sockets.NetBitBufferNull.WriteBytesAligned(System.Span{System.Byte})">
+            <summary>
+            Writes a specified number of bytes from a buffer to the bit buffer, ensuring byte alignment.
+            </summary>
+            <param name="buffer">A pointer to the buffer containing the bytes to write.</param>
         </member>
         <member name="T:Fusion.Sockets.NetBitBufferSerializer">
             <summary>
@@ -1554,6 +1578,11 @@
             Compares two NetConnectionId instances for inequality.
             </summary>
         </member>
+        <member name="M:Fusion.Sockets.NetConnectionId.ToString">
+            <summary>
+            NetConnectionId ToString
+            </summary>
+        </member>
         <member name="T:Fusion.Sockets.NetConnectionMap">
             <summary>
             Represents a network connection map.
@@ -1606,7 +1635,7 @@
             </summary>
             <returns>True if the iterator was successfully advanced to the next connection, otherwise false.</returns>
         </member>
-        <member name="M:Fusion.Sockets.NetConnectionMap.Dispose(Fusion.Sockets.NetConnectionMap*,Fusion.Sockets.INetPeerGroupCallbacks)">
+        <member name="M:Fusion.Sockets.NetConnectionMap.Dispose(Fusion.Sockets.NetConnectionMap*@,Fusion.Sockets.INetPeerGroupCallbacks)">
             <summary>
             Disposes of the specified `NetConnectionMap` and its associated resources.
             </summary>
@@ -1906,6 +1935,7 @@
             </summary>
             <param name="p">A pointer to the NetPeer instance.</param>
             <param name="socket">The socket used for network communication.</param>
+            /// <returns>The amount of fragments sent</returns>
         </member>
         <member name="M:Fusion.Sockets.NetPeer.Send(Fusion.Sockets.NetPeer*,Fusion.Sockets.INetSocket,System.Boolean*)">
             <summary>
@@ -1914,6 +1944,7 @@
             <param name="p">A pointer to the NetPeer instance.</param>
             <param name="socket">The socket used for network communication.</param>
             <param name="work">A pointer to a boolean indicating whether work was done.</param>
+            <returns>The amount of fragments sent</returns>
         </member>
         <member name="M:Fusion.Sockets.NetPeer.Initialize(Fusion.Sockets.NetConfig,Fusion.Sockets.INetSocket)">
             <summary>
@@ -1938,6 +1969,12 @@
             <param name="p">A pointer to the NetPeer instance.</param>
             <param name="socket">The socket used for network communication.</param>
             <param name="callbacks">The callbacks for the NetPeerGroup.</param>
+        </member>
+        <member name="M:Fusion.Sockets.NetPeer.SendInternal(Fusion.Sockets.NetPeer*,Fusion.Sockets.INetSocket,System.Boolean*)">
+            <returns>The amount of fragments sent</returns>
+        </member>
+        <member name="M:Fusion.Sockets.NetPeer.SendFromStack(Fusion.Sockets.NetPeer*,Fusion.Sockets.INetSocket,System.Boolean*)">
+            <returns>The amount of fragments sent</returns>
         </member>
         <member name="T:Fusion.Sockets.NetPeerGroup">
             <summary>
@@ -2024,6 +2061,7 @@
             </summary>
             <param name="g">Pointer to the network peer group.</param>
             <param name="cb">Callback interface for network peer group events.</param>
+            <returns>Amount of packets received</returns>
         </member>
         <member name="M:Fusion.Sockets.NetPeerGroup.SendReliable(Fusion.Sockets.NetPeerGroup*,Fusion.Sockets.NetConnection*,Fusion.Sockets.ReliableId,System.Byte*,System.Int32)">
             <summary>
@@ -2080,7 +2118,7 @@
             <param name="b">Output parameter that will point to the bit buffer containing the data to be sent.</param>
             <returns>True if the buffer was successfully acquired, otherwise false.</returns>
         </member>
-        <member name="M:Fusion.Sockets.NetPeerGroup.SendNotifyDataBuffer(Fusion.Sockets.NetPeerGroup*,Fusion.Sockets.NetConnection*,Fusion.Sockets.NetBitBuffer*,System.Void*)">
+        <member name="M:Fusion.Sockets.NetPeerGroup.SendNotifyDataBuffer(Fusion.Sockets.NetPeerGroup*,Fusion.Sockets.NetConnection*,Fusion.Sockets.NetBitBuffer*@,System.Void*)">
             <summary>
             Sends a notify data buffer for a given connection in the network peer group.
             </summary>
@@ -2089,6 +2127,9 @@
             <param name="b">Pointer to the bit buffer containing the data to be sent.</param>
             <param name="userData">Pointer to user data associated with the buffer.</param>
             <returns>True if the buffer was successfully sent, otherwise false.</returns>
+        </member>
+        <member name="M:Fusion.Sockets.NetPeerGroup.Receive(Fusion.Sockets.NetPeerGroup*,Fusion.Sockets.INetPeerGroupCallbacks)">
+            <returns>Amount of packets received</returns>
         </member>
         <member name="M:Fusion.Sockets.NetPeerGroup.GetConnectionIdleTime(Fusion.Sockets.NetPeerGroup*,Fusion.Sockets.NetConnection*)">
             <summary>
@@ -2156,21 +2197,21 @@
             <param name="connection">The connection from which the data was received.</param>
             <param name="buffer">The buffer containing the data.</param>
         </member>
-        <member name="M:Fusion.Sockets.INetPeerGroupCallbacks.OnNotifyLost(Fusion.Sockets.NetConnection*,Fusion.Sockets.NetSendEnvelope)">
+        <member name="M:Fusion.Sockets.INetPeerGroupCallbacks.OnNotifyLost(Fusion.Sockets.NetConnection*,Fusion.Sockets.NetSendEnvelope@)">
             <summary>
             Called when notify data is lost.
             </summary>
             <param name="connection">The connection from which the data was lost.</param>
             <param name="envelope">The envelope containing the lost data.</param>
         </member>
-        <member name="M:Fusion.Sockets.INetPeerGroupCallbacks.OnNotifyDelivered(Fusion.Sockets.NetConnection*,Fusion.Sockets.NetSendEnvelope)">
+        <member name="M:Fusion.Sockets.INetPeerGroupCallbacks.OnNotifyDelivered(Fusion.Sockets.NetConnection*,Fusion.Sockets.NetSendEnvelope@)">
             <summary>
             Called when notify data is delivered.
             </summary>
             <param name="connection">The connection to which the data was delivered.</param>
             <param name="envelope">The envelope containing the delivered data.</param>
         </member>
-        <member name="M:Fusion.Sockets.INetPeerGroupCallbacks.OnNotifyDispose(Fusion.Sockets.NetSendEnvelope)">
+        <member name="M:Fusion.Sockets.INetPeerGroupCallbacks.OnNotifyDispose(Fusion.Sockets.NetSendEnvelope@)">
             <summary>
             Called when a notify envelope is disposed.
             </summary>
@@ -2218,20 +2259,28 @@
             Gets or sets the user data associated with the envelope.
             </summary>
         </member>
-        <member name="F:Fusion.Sockets.NetSendEnvelope.Sequence">
-            <summary>
-            Gets or sets the sequence number of the packet.
-            </summary>
-        </member>
         <member name="F:Fusion.Sockets.NetSendEnvelope.SendTime">
             <summary>
             Gets or sets the time the packet was sent.
+            </summary>
+        </member>
+        <member name="F:Fusion.Sockets.NetSendEnvelope.Sequence">
+            <summary>
+            Gets or sets the sequence number of the packet.
             </summary>
         </member>
         <member name="F:Fusion.Sockets.NetSendEnvelope.PacketType">
             <summary>
             Gets or sets the type of the network packet.
             </summary>
+        </member>
+        <member name="M:Fusion.Sockets.NetSendEnvelope.TakeUserData``1">
+            <summary>
+            Takes the user data associated with the envelope and sets the UserData to null.
+            </summary>
+            <typeparam name="T">The type of the user data.</typeparam>
+            <returns>The user data cast to the specified type.</returns>
+            <exception cref="T:Fusion.AssertException">Thrown if UserData is null.</exception>
         </member>
         <member name="M:Fusion.Sockets.NetSequencer.Distance(System.UInt64,System.UInt64)">
             <summary>
@@ -2305,7 +2354,7 @@
             <c>true</c> if the data is exactly what is expected; otherwise, <c>false</c>.
             </returns>
         </member>
-        <member name="M:Fusion.Sockets.ReliableBuffer.LateFree(System.Void*)">
+        <member name="M:Fusion.Sockets.ReliableBuffer.LateFree(System.Void*@)">
             <summary>
             Frees the memory associated with the specified root pointer.
             </summary>
@@ -2369,6 +2418,32 @@
             <param name="key0">The first unsigned long key.</param>
             <param name="key1">The second unsigned long key.</param>
             <returns>A new ReliableKey instance.</returns>
+        </member>
+        <member name="M:Fusion.Sockets.ReliableKey.Equals(Fusion.Sockets.ReliableKey)">
+            <summary>
+            Returns <see langword="true"/> if the <see cref="F:Fusion.Sockets.ReliableKey.Data"/> is the same.
+            </summary>
+        </member>
+        <member name="M:Fusion.Sockets.ReliableKey.Equals(System.Object)">
+            <summary>
+            Returns <see langword="true"/> if obj is a ReliableKey and the <see cref="F:Fusion.Sockets.ReliableKey.Data"/> is the same.
+            </summary>
+        </member>
+        <member name="M:Fusion.Sockets.ReliableKey.op_Equality(Fusion.Sockets.ReliableKey,Fusion.Sockets.ReliableKey)">
+            <summary>
+            Returns <see langword="true"/> if the <see cref="F:Fusion.Sockets.ReliableKey.Data"/> is the same.
+            </summary>
+        </member>
+        <member name="M:Fusion.Sockets.ReliableKey.op_Inequality(Fusion.Sockets.ReliableKey,Fusion.Sockets.ReliableKey)">
+            <summary>
+            Returns <see langword="true"/> if the <see cref="F:Fusion.Sockets.ReliableKey.Data"/> is not the same.
+            </summary>
+        </member>
+        <member name="M:Fusion.Sockets.ReliableKey.GetHashCode">
+            <summary>
+            Returns a hash based on the <see cref="F:Fusion.Sockets.ReliableKey.Data"/>.
+            
+            </summary>
         </member>
         <member name="T:Fusion.Sockets.ReliableId">
             <summary>
@@ -2514,6 +2589,9 @@
             Removes the specified item from the list.
             </summary>
             <param name="item">The item to remove.</param>
+        </member>
+        <member name="M:Fusion.Sockets.ReliableList.Dispose">
+            <summary>Dispose</summary>
         </member>
         <member name="T:Fusion.Sockets.NetSocket">
             <summary>
@@ -3806,15 +3884,15 @@
             </summary>
         </member>
         <member name="T:Fusion.Protocol.Message">
-            <summary>
-            Base Protocol Message.
+             <summary>
+             Base Protocol Message.
             
-            This concentrates the basics for serialization and cloning
-            </summary>
+             This concentrates the basics for serialization and cloning
+             </summary>
         </member>
-        <member name="F:Fusion.Protocol.Message.CustomDataLenght">
+        <member name="F:Fusion.Protocol.Message.CustomDataLength">
             <summary>
-            Max Lenght of the Custom Data
+            Max Length of the Custom Data
             </summary>
         </member>
         <member name="F:Fusion.Protocol.Message.ProtocolVersion">
@@ -3866,7 +3944,7 @@
             </summary>
             <param name="stream">Buffer to read from or write into the data of the Message</param>
         </member>
-        <member name="M:Fusion.Protocol.Message.CheckCompability(Fusion.Protocol.ProtocolMessageVersion,System.Version,System.Version)">
+        <member name="M:Fusion.Protocol.Message.CheckCompatibility(Fusion.Protocol.ProtocolMessageVersion,System.Version,System.Version)">
             <summary>
             Check if this Message is compatible with target versions
             </summary>

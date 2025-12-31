@@ -478,7 +478,7 @@ namespace Fusion {
           return "Static: (broken)";
         } else if (Object.isSet) {
 #if UNITY_EDITOR
-          if (UnityEditor.AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Object.instanceID, out var guid, out long fileID)) {
+          if (UnityEditor.AssetDatabase.TryGetGUIDAndLocalFileIdentifier(Object, out var guid, out long fileID)) {
             return $"Static: {guid}, fileID: {fileID}";
           }
 #endif
@@ -857,64 +857,209 @@ namespace Fusion {
 #region Assets/Photon/Fusion/Runtime/FusionProfiler.cs
 
 namespace Fusion {
-#if FUSION_PROFILER_INTEGRATION
+  using System;
+  using System.Collections.Generic;
+  using System.Diagnostics;
+  using System.Linq;
+  using Unity.Collections.LowLevel.Unsafe;
   using Unity.Profiling;
+  using Unity.Profiling.LowLevel;
+  using Unity.Profiling.LowLevel.Unsafe;
   using UnityEngine;
+  using Object = System.Object;
 
   public static class FusionProfiler {
     [RuntimeInitializeOnLoadMethod]
     static void Init() {
-      Fusion.EngineProfiler.InterpolationOffsetCallback = f => InterpolationOffset.Sample(f);
-      Fusion.EngineProfiler.InterpolationTimeScaleCallback = f => InterpolationTimeScale.Sample(f);
-      Fusion.EngineProfiler.InterpolationMultiplierCallback = f => InterpolationMultiplier.Sample(f);
-      Fusion.EngineProfiler.InterpolationUncertaintyCallback = f => InterpolationUncertainty.Sample(f);
+      Fusion.EngineProfiler.InterpolationOffsetCallback = f => SetCounter(InterpolationOffset, f);
 
-      Fusion.EngineProfiler.ResimulationsCallback = i => Resimulations.Sample(i);
-      Fusion.EngineProfiler.WorldSnapshotSizeCallback = i => WorldSnapshotSize.Sample(i);
+      Fusion.EngineProfiler.ResimulationsCallback = i => SetCounter(Resimulations, i);
+      Fusion.EngineProfiler.WorldSnapshotSizeCallback = i => SetCounter(WorldSnapshotSize, i);
 
-      Fusion.EngineProfiler.RoundTripTimeCallback = f => RoundTripTime.Sample(f);
+      Fusion.EngineProfiler.RoundTripTimeCallback = f => SetCounter(RoundTripTime, f);
 
-      Fusion.EngineProfiler.InputSizeCallback = i => InputSize.Sample(i);
-      Fusion.EngineProfiler.InputQueueCallback = i => InputQueue.Sample(i);
+      Fusion.EngineProfiler.InputSizeCallback = i => SetCounter(InputSize, i);
+      Fusion.EngineProfiler.InputQueueCallback = i => SetCounter(InputQueue, i);
 
-      Fusion.EngineProfiler.RpcInCallback = i => RpcIn.Value += i;
-      Fusion.EngineProfiler.RpcOutCallback = i => RpcOut.Value += i;
+      Fusion.EngineProfiler.RpcInCallback = i => SetCounterValue(RpcIn, i, true);
+      Fusion.EngineProfiler.RpcOutCallback = i => SetCounterValue(RpcOut, i, true);
+      
+      Fusion.EngineProfiler.InputRecvDeltaCallback = f => SetCounter(InputRecvDelta, f);
+      Fusion.EngineProfiler.InputRecvDeltaDeviationCallback = f => SetCounter(InputRecvDeltaDeviation, f);
 
-      Fusion.EngineProfiler.SimualtionTimeScaleCallback = f => SimulationTimeScale.Sample(f);
+      foreach (var counter in AllocCounters.Values) {
+        SetCounterValue(counter.Count, 0);
+        SetCounterValue(counter.Size, 0);
+      }
 
-      Fusion.EngineProfiler.InputOffsetCallback = f => InputOffset.Sample(f);
-      Fusion.EngineProfiler.InputOffsetDeviationCallback = f => InputOffsetDeviation.Sample(f);
+      SetCounterValue(ObjectAllocatorUsage, 0);
+      SetCounterValue(MiscAllocatorUsage, 0);
+      
+      Fusion.EngineProfiler.InternalObjectAllocatedCallback = (typeId, size) => {
+        var entry = AllocCounters[typeId];
+        SetCounterValue(entry.Count, 1, true);
+        SetCounterValue(entry.Size, size, true);
+        SetCounterValue(typeId == EngineProfiler.InternalSimulationType.Object ? ObjectAllocatorUsage : MiscAllocatorUsage, size, true);
+      };
+      
+      Fusion.EngineProfiler.InternalObjectFreedCallback = (typeId, size) => {
+        var entry = AllocCounters[typeId];
+        SetCounterValue(entry.Count, -1, true);
+        SetCounterValue(entry.Size, -size, true);
+        SetCounterValue(typeId == EngineProfiler.InternalSimulationType.Object ? ObjectAllocatorUsage : MiscAllocatorUsage, -size, true);
+      };
 
-      Fusion.EngineProfiler.InputRecvDeltaCallback = f => InputRecvDelta.Sample(f);
-      Fusion.EngineProfiler.InputRecvDeltaDeviationCallback = f => InputRecvDeltaDeviation.Sample(f);
+      Fusion.EngineProfiler.PacketInCallback = info => {
+        SetCounterValue(PacketIn.Updates, info.ObjectUpdates, delta: true);
+        SetCounterValue(PacketIn.Destroys, info.ObjectDestroys, delta: true);
+        SetCounterValue(PacketIn.Count, 1, delta: true);
+      };
+      
+      Fusion.EngineProfiler.PacketOutCallback = info => {
+        SetCounterValue(PacketOut.Updates, info.ObjectUpdates, delta: true);
+        SetCounterValue(PacketOut.Destroys, info.ObjectDestroys, delta: true);
+        SetCounterValue(PacketOut.Count, 1, delta: true);
+      };
+      
+      Fusion.EngineProfiler.PacketLostCallback = info => {
+        SetCounterValue(PacketLost.Updates, info.ObjectUpdates, delta: true);
+        SetCounterValue(PacketLost.Destroys, info.ObjectDestroys, delta: true);
+        SetCounterValue(PacketLost.Count, 1, delta: true);
+      };
+      
+      Fusion.EngineProfiler.PacketDeliveredCallback = info => {
+        SetCounterValue(PacketDelivered.Updates, info.ObjectUpdates, delta: true);
+        SetCounterValue(PacketDelivered.Destroys, info.ObjectDestroys, delta: true);
+        SetCounterValue(PacketDelivered.Count, 1, delta: true);
+      };
+
+      Fusion.EngineProfiler.UDPPacketsOutCallback = count => {
+        SetCounterValue(UDPPackets, count, delta: true);
+      };
     }
 
-    public static readonly ProfilerCategory Category = ProfilerCategory.Scripts;
+    public static readonly ProfilerCategory Category       = ProfilerCategory.Scripts;
 
-    public static readonly ProfilerCounter<float> InterpolationOffset = new ProfilerCounter<float>(Category, "Interp Offset", ProfilerMarkerDataUnit.Count);
-    public static readonly ProfilerCounter<float> InterpolationTimeScale = new ProfilerCounter<float>(Category, "Interp Time Scale", ProfilerMarkerDataUnit.Count);
-    public static readonly ProfilerCounter<float> InterpolationMultiplier = new ProfilerCounter<float>(Category, "Interp Multiplier", ProfilerMarkerDataUnit.Count);
-    public static readonly ProfilerCounter<float> InterpolationUncertainty = new ProfilerCounter<float>(Category, "Interp Uncertainty", ProfilerMarkerDataUnit.Undefined);
+    public static readonly IntPtr InterpolationOffset = CreateCounter("F Interp Offset", ProfilerMarkerDataType.Float, ProfilerMarkerDataUnit.Count);
 
-    public static readonly ProfilerCounter<int> InputSize = new ProfilerCounter<int>(Category, "Client Input Size", ProfilerMarkerDataUnit.Bytes);
-    public static readonly ProfilerCounter<int> InputQueue = new ProfilerCounter<int>(Category, "Client Input Queue", ProfilerMarkerDataUnit.Count);
+    public static readonly IntPtr InputSize  = CreateCounter("F Client Input Size", ProfilerMarkerDataType.Int32, ProfilerMarkerDataUnit.Bytes);
+    public static readonly IntPtr InputQueue = CreateCounter("F Client Input Queue", ProfilerMarkerDataType.Int32, ProfilerMarkerDataUnit.Count);
 
-    public static readonly ProfilerCounter<int> WorldSnapshotSize = new ProfilerCounter<int>(Category, "Client Snapshot Size", ProfilerMarkerDataUnit.Bytes);
-    public static readonly ProfilerCounter<int> Resimulations = new ProfilerCounter<int>(Category, "Client Resims", ProfilerMarkerDataUnit.Count);
-    public static readonly ProfilerCounter<float> RoundTripTime = new ProfilerCounter<float>(Category, "Client RTT", ProfilerMarkerDataUnit.Count);
+    public static readonly IntPtr WorldSnapshotSize = CreateCounter("F Client Snapshot Size", ProfilerMarkerDataType.Int32, ProfilerMarkerDataUnit.Bytes);
+    public static readonly IntPtr Resimulations     = CreateCounter("F Client Resims", ProfilerMarkerDataType.Int32, ProfilerMarkerDataUnit.Count);
+    public static readonly IntPtr RoundTripTime     = CreateCounter("F Client RTT", ProfilerMarkerDataType.Float, ProfilerMarkerDataUnit.Count);
 
-    public static readonly ProfilerCounterValue<int> RpcIn = new ProfilerCounterValue<int>(Category, "RPCs In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.FlushOnEndOfFrame | ProfilerCounterOptions.ResetToZeroOnFlush);
-    public static readonly ProfilerCounterValue<int> RpcOut = new ProfilerCounterValue<int>(Category, "RPCs Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.FlushOnEndOfFrame | ProfilerCounterOptions.ResetToZeroOnFlush);
+    public static readonly IntPtr RpcIn  = CreateCounterValue("F RPCs In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.FlushOnEndOfFrame | ProfilerCounterOptions.ResetToZeroOnFlush);
+    public static readonly IntPtr RpcOut = CreateCounterValue("F RPCs Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.FlushOnEndOfFrame | ProfilerCounterOptions.ResetToZeroOnFlush);
 
-    public static readonly ProfilerCounter<float> SimulationTimeScale = new ProfilerCounter<float>(Category, "Simulation Time Scale", ProfilerMarkerDataUnit.Count);
+    public static readonly IntPtr InputRecvDelta = CreateCounter("F Input Recv Delta", ProfilerMarkerDataType.Float, ProfilerMarkerDataUnit.Count);
+    public static readonly IntPtr InputRecvDeltaDeviation = CreateCounter("F Input Recv Delta Dev", ProfilerMarkerDataType.Float, ProfilerMarkerDataUnit.Count);
 
-    public static readonly ProfilerCounter<float> InputOffset = new ProfilerCounter<float>(Category, "Input Offset", ProfilerMarkerDataUnit.Count);
-    public static readonly ProfilerCounter<float> InputOffsetDeviation = new ProfilerCounter<float>(Category, "Input Offset Dev", ProfilerMarkerDataUnit.Count);
+    static readonly Dictionary<EngineProfiler.InternalSimulationType, (IntPtr Count, IntPtr Size)> AllocCounters = typeof(EngineProfiler.InternalSimulationType).GetEnumValues()
+      .Cast<EngineProfiler.InternalSimulationType>()
+      .ToDictionary(x => x, x => {
+        var count = CreateCounterValue($"F {x} Count", ProfilerMarkerDataUnit.Count);
+        var size = CreateCounterValue($"F {x} Size", ProfilerMarkerDataUnit.Bytes);
+        SetCounterValue(count, 0);
+        SetCounterValue(count, 0);
+        return (count, size);
+      });
 
-    public static readonly ProfilerCounter<float> InputRecvDelta = new ProfilerCounter<float>(Category, "Input Recv Delta", ProfilerMarkerDataUnit.Count);
-    public static readonly ProfilerCounter<float> InputRecvDeltaDeviation = new ProfilerCounter<float>(Category, "Input Recv Delta Dev", ProfilerMarkerDataUnit.Count);
-  }
+    public static readonly IntPtr ObjectAllocatorUsage = CreateCounterValue("F Object Allocator", ProfilerMarkerDataUnit.Bytes);
+    public static readonly IntPtr MiscAllocatorUsage   = CreateCounterValue("F Misc Allocator", ProfilerMarkerDataUnit.Bytes);
+
+    public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketIn = (
+      CreateCounterValue("F Objects In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Destroys In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Packet In", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
+    );
+
+    public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketOut = (
+      CreateCounterValue("F Objects Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Destroys Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Packet Out", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
+    );
+    
+    public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketLost = (
+      CreateCounterValue("F Objects Lost", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Destroys Lost", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Packet Lost", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
+    );
+    
+    public static readonly (IntPtr Updates, IntPtr Destroys, IntPtr Count) PacketDelivered = (
+      CreateCounterValue("F Objects Delivered", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Destroys Delivered", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame),
+      CreateCounterValue("F Packet Delivered", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame)
+    );
+
+    static readonly IntPtr UDPPackets = CreateCounterValue("F UDP Packets", ProfilerMarkerDataUnit.Count, ProfilerCounterOptions.ResetToZeroOnFlush | ProfilerCounterOptions.FlushOnEndOfFrame);
+
+    static IntPtr CreateCounter(string name, ProfilerMarkerDataType dataType, ProfilerMarkerDataUnit unit) {
+#if ENABLE_PROFILER
+      var marker = ProfilerUnsafeUtility.CreateMarker(name, ProfilerCategory.Scripts, MarkerFlags.Counter, 1);
+      ProfilerUnsafeUtility.SetMarkerMetadata(marker, 0, null, (byte)dataType, (byte)unit);
+      return marker;
+#else
+      return default;
 #endif
+    }
+    
+    static IntPtr CreateCounterValue(string name, ProfilerMarkerDataUnit unit, ProfilerCounterOptions options = ProfilerCounterOptions.FlushOnEndOfFrame) {
+#if ENABLE_PROFILER
+      var flags = ProfilerCounterOptions.FlushOnEndOfFrame | options;
+      unsafe {
+        var ptr = ProfilerUnsafeUtility.CreateCounterValue(out _, name, ProfilerUnsafeUtility.CategoryScripts, MarkerFlags.Default, (byte)ProfilerMarkerDataType.Int32, (byte)unit, sizeof(int), flags);
+        return (new IntPtr(ptr));  
+      }
+#else
+      return default;
+#endif
+    }
+
+    [Conditional("ENABLE_PROFILER")]
+    static void SetCounter(IntPtr counter, int value) {
+      if (counter == default) {
+        return;
+      }
+      unsafe {
+        var data = new ProfilerMarkerData {
+          Type = (byte)ProfilerMarkerDataType.Int32,
+          Size = sizeof(int),
+          Ptr = UnsafeUtility.AddressOf(ref value)
+        };
+        ProfilerUnsafeUtility.SingleSampleWithMetadata(counter, 1, &data);
+      }
+    }
+    
+    [Conditional("ENABLE_PROFILER")]
+    static void SetCounter(IntPtr counter, float value) {
+      if (counter == default) {
+        return;
+      }
+      unsafe {
+        var data = new ProfilerMarkerData {
+          Type = (byte)ProfilerMarkerDataType.Float,
+          Size = sizeof(float),
+          Ptr = UnsafeUtility.AddressOf(ref value)
+        };
+        ProfilerUnsafeUtility.SingleSampleWithMetadata(counter, 1, &data);
+      }
+    }
+    
+    [Conditional("ENABLE_PROFILER")]
+    static void SetCounterValue(IntPtr counter, int value, bool delta = false) {
+      if (counter == default) {
+        return;
+      }
+      unsafe {
+        if (delta) {
+          *(int*)counter += value;
+        } else {
+          *(int*)counter = value;
+        }
+      }
+    }
+  }
 }
 
 #endregion
@@ -996,6 +1141,12 @@ namespace Fusion {
 #endif
 #if FUSION_TRACE_MEMORYTRACK
       traceChannels |= TraceChannels.MemoryTrack;
+#endif
+#if FUSION_TRACE_SNAPSHOTS
+      traceChannels |= TraceChannels.Snapshots;
+#endif
+#if FUSION_TRACE_TIME
+      traceChannels |= TraceChannels.Time;
 #endif
       return traceChannels;
     }
@@ -1585,7 +1736,7 @@ namespace Fusion {
         GetEditorLogLevel();
 #else
         LogLevel.None;
-      FusionEditorLog.LogWarning($"No log level define set for Fusion, treating as FUSION_LOGLEVEL_NONE (disabled completely).");
+        FusionEditorLog.Warn($"No log level define set for Fusion, treating as FUSION_LOGLEVEL_NONE (disabled completely).");
 #endif
       
       TraceChannels traceChannels = default;
@@ -2083,15 +2234,6 @@ namespace Fusion {
       // do nothing
       return false;
     }
-    
-    [System.Diagnostics.Conditional("FUSION_EDITOR_TRACE")]
-    protected static void Trace(string msg) {
-      Debug.Log($"[Fusion/NetworkObjectBaker] {msg}");
-    }
-
-    protected static void Warn(string msg, UnityEngine.Object context = null) {
-      Debug.LogWarning($"[Fusion/NetworkObjectBaker] {msg}", context);
-    }
 
     public Result Bake(GameObject root) {
 
@@ -2135,7 +2277,7 @@ namespace Fusion {
             if (TryGetExecutionOrder(obj, out var order)) {
               objExecutionOrder = order;
             } else {
-              Warn($"Unable to get execution order for {obj}. " +
+              Log.Warn($"Unable to get execution order for {obj}. " +
                 $"Because the object is initially inactive, Fusion is unable to guarantee " +
                 $"the script's Awake will be invoked before Spawned. Please implement {nameof(TryGetExecutionOrder)}.");
             }
@@ -2164,13 +2306,13 @@ namespace Fusion {
                 // check if execution order is ok
                 if (TryGetExecutionOrder(script, out var scriptOrder)) {
                   if (objExecutionOrder <= scriptOrder) {
-                    Warn($"{obj} execution order is less or equal than of the script {script}. " +
-                      $"Because the object is initially inactive, Spawned callback will be invoked before the script's Awake on activation.", script);
+                    Log.Warn($"{obj} execution order is less or equal than of the script {script}. " +
+                             $"Because the object is initially inactive, Spawned callback will be invoked before the script's Awake on activation.");
                   }
                 } else {
-                  Warn($"Unable to get execution order for {script}. " +
-                    $"Because the object is initially inactive, Fusion is unable to guarantee " +
-                    $"the script's Awake will be invoked before Spawned. Please implement {nameof(TryGetExecutionOrder)}.");
+                  Log.Warn($"Unable to get execution order for {script}. " +
+                           $"Because the object is initially inactive, Fusion is unable to guarantee " +
+                           $"the script's Awake will be invoked before Spawned. Please implement {nameof(TryGetExecutionOrder)}.");
                 }
               }
 
@@ -2234,7 +2376,7 @@ namespace Fusion {
 
     private bool Set<T>(MonoBehaviour host, ref T field, T value) {
       if (!EqualityComparer<T>.Default.Equals(field, value)) {
-        Trace($"Object dirty: {host} ({field} vs {value})");
+        Log.Trace($"Object dirty: {host} ({field} vs {value})");
         field = value;
         return true;
       } else {
@@ -2245,7 +2387,7 @@ namespace Fusion {
     private bool Set<T>(MonoBehaviour host, ref T[] field, List<T> value) {
       var comparer = EqualityComparer<T>.Default;
       if (field == null || field.Length != value.Count || !field.SequenceEqual(value, comparer)) {
-        Trace($"Object dirty: {host} ({field} vs {value})");
+        Log.Trace($"Object dirty: {host} ({field} vs {value})");
         field = value.ToArray();
         return true;
       } else {
